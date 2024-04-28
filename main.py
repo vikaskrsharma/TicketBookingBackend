@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 from datetime import date, datetime
@@ -7,8 +8,20 @@ import random, string
 
 app = FastAPI()
 
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
+
 ############## Pydantic Models ##############
 # Pydantic models for request and response data
+class PostUser(BaseModel):
+	user_id: int
+
 class GetMatch(BaseModel):
     match_id: int
     match_date: date
@@ -46,8 +59,10 @@ def get_db():
     finally:
         db.close()
 
+
+SESSION_USER = None
+
 def get_current_user():
-    # Assume user ID 1 for demonstration purposes
     return 1
 
 def generate_booking_number(length=8):
@@ -56,6 +71,7 @@ def generate_booking_number(length=8):
     return booking_number
 
 ###################### Routes ######################
+
 
 # Route to get all matches
 @app.get("/matches", response_model=List[GetMatch])
@@ -117,15 +133,6 @@ def get_bookings(user_id: int = Depends(get_current_user), db: Session = Depends
 			booking_number=row.booking_number)
 		response.append(obj)
 	return response
-
-# # Route to get a specific user by ID
-# @app.get("/users/{user_id}", response_model=UserOut)
-# def read_user(user_id: int):
-#     db = SessionLocal()
-#     user = db.query(User).filter(User.id == user_id).first()
-#     if user is None:
-#         raise HTTPException(status_code=404, detail="User not found")
-#     return user
 
 
 ###################### Main ######################
